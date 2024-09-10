@@ -16,7 +16,12 @@ import bpy
 import bpy.utils.previews
 
 from ayon_core import style
-from ayon_core.pipeline import get_current_folder_path, get_current_task_name
+from ayon_core.settings import get_project_settings
+from ayon_core.pipeline import (
+    get_current_folder_path,
+    get_current_task_name,
+    get_current_project_name
+)
 from ayon_core.pipeline.context_tools import (
     get_current_task_entity
 )
@@ -186,7 +191,7 @@ def _process_app_events() -> Optional[float]:
 
         # Refresh Manager
         if GlobalClass.app:
-            manager = GlobalClass.app.get_window("WM_OT_avalon_manager")
+            manager = BlenderApplication.get_window("WM_OT_avalon_manager")
             if manager:
                 manager.refresh()
 
@@ -364,8 +369,8 @@ class SetFrameRange(bpy.types.Operator):
     bl_label = "Set Frame Range"
 
     def execute(self, context):
-        data = get_current_task_entity()
-        pipeline.set_frame_range(data)
+        task_entity = get_current_task_entity()
+        pipeline.set_frame_range(task_entity)
         return {"FINISHED"}
 
 
@@ -374,8 +379,21 @@ class SetResolution(bpy.types.Operator):
     bl_label = "Set Resolution"
 
     def execute(self, context):
-        data = get_current_task_entity()
-        pipeline.set_resolution(data)
+        task_entity = get_current_task_entity()
+        pipeline.set_resolution(task_entity)
+        return {"FINISHED"}
+
+
+class SetUnitScale(bpy.types.Operator):
+    bl_idname = "wm.ayon_set_unit_scale"
+    bl_label = "Set Unit Scale"
+
+    def execute(self, context):
+        project = get_current_project_name()
+        settings = get_project_settings(project).get("blender")
+        unit_scale_settings = settings.get("unit_scale_settings")
+        pipeline.set_unit_scale_from_settings(
+            unit_scale_settings=unit_scale_settings)
         return {"FINISHED"}
 
 
@@ -418,6 +436,7 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
         layout.separator()
         layout.operator(SetFrameRange.bl_idname, text="Set Frame Range")
         layout.operator(SetResolution.bl_idname, text="Set Resolution")
+        layout.operator(SetUnitScale.bl_idname, text="Set Unit Scale")
         layout.separator()
         layout.operator(LaunchWorkFiles.bl_idname, text="Work Files...")
 
@@ -437,6 +456,7 @@ classes = [
     LaunchWorkFiles,
     SetFrameRange,
     SetResolution,
+    SetUnitScale,
     TOPBAR_MT_avalon,
 ]
 
