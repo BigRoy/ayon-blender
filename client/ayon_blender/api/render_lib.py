@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pathlib import Path
 import bpy
 
@@ -504,3 +505,58 @@ def update_render_product(name, output_path, render_product, aov_sep, multilayer
                 tmp_render_product[rl_name].append((rpass_name, filepath))
 
     return tmp_render_product
+
+
+def get_composite_output_node() -> Optional[
+    "bpy.types.CompositorNodeOutputFile"
+]:
+    """Get composite output node.
+
+    AYON currently creates and manages a single `CompositorNodeOutputFile`
+    through predefined settings. This function tries to find that node and
+    return it. If it does not exist, it returns None.
+
+    This logic is brittle and simply searches for a first matching node
+    type with a simple name filter. Improvements to this logic are
+    upcoming with pending PR #67.
+
+    """
+    tree = bpy.context.scene.node_tree
+    output_type = "CompositorNodeOutputFile"
+    # Return first matching node
+    for node in tree.nodes:
+        if node.bl_idname == output_type and "AYON" in node.name:
+            return node
+    return None
+
+
+def get_colorspace_data(
+    node: "bpy.types.CompositorNodeOutputFile"
+) -> dict[str, str]:
+    """Return OCIO colorspace from the compositor output file node."""
+    ocio_path = os.getenv("OCIO")
+    if not ocio_path:
+        # OCIO not currently implemented in Blender, but the following
+        # settings are required by the schema, so it is hardcoded.
+        # assume not color-managed, return fallback placeholder data
+        return {
+            "colorspaceConfig": "",
+            "colorspaceDisplay": "sRGB",
+            "colorspaceView": "ACES 1.0 SDR-video",
+        }
+
+    # Get from node or scene
+    if node.format.color_management == "OVERRIDE":
+        display: str = node.display_settings.display_device
+        view: str = node.view_settings.view_transform
+        # look: str = node.view_settings.look
+    else:
+        display: str = bpy.context.scene.display_settings.display_device
+        view: str = bpy.context.scene.view_settings.view_transform
+        # look: str = bpy.context.scene.view_settings.look
+
+    return {
+        "colorspaceConfig": ocio_path,
+        "colorspaceDisplay": display,
+        "colorspaceView": view,
+    }

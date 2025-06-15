@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Collect render data."""
-
+from __future__ import annotations
 import os
 import re
 
@@ -9,6 +9,10 @@ import pyblish.api
 import ayon_api
 
 from ayon_blender.api import colorspace, plugin
+from ayon_blender.api.render_lib import (
+    get_composite_output_node,
+    get_colorspace_data
+)
 from ayon_core.pipeline.create import get_product_name
 
 
@@ -64,6 +68,17 @@ class CollectBlenderRender(plugin.BlenderInstancePlugin):
         frame_start = instance.data["frameStartHandle"]
         frame_end = instance.data["frameEndHandle"]
 
+        # Collect colorspace data from the composite output node
+        composite_output_node = get_composite_output_node()
+        if composite_output_node:
+            colorspace_data = get_colorspace_data(composite_output_node)
+        else:
+            self.log.warning(
+                "Unable to find AYON compositor output node,"
+                " colorspace data will not be fetched."
+            )
+            colorspace_data = {}
+
         if multilayer:
             expected_files = next((rn_product for rn_product in render_product.values()), None)
             expected_beauty = self.generate_expected_files(
@@ -83,28 +98,33 @@ class CollectBlenderRender(plugin.BlenderInstancePlugin):
                 "multipartExr": ext == "exr" and multilayer,
                 "farm": True,
                 "expectedFiles": [expected_beauty],
-                # OCIO not currently implemented in Blender, but the following
-                # settings are required by the schema, so it is hardcoded.
-                # TODO: Implement OCIO in Blender
-                "colorspaceConfig": os.environ.get("OCIO", ""),
-                "colorspaceDisplay": "sRGB",
-                "colorspaceView": "ACES 1.0 SDR-video",
                 "renderProducts": colorspace.ARenderProduct(
                     frame_start=frame_start,
                     frame_end=frame_end
                 ),
             })
+            instance.data.update(colorspace_data)
 
         else:
             instance.data["integrate"] = False
             self.create_renderlayer_instance(
                 instance, render_product,
                 aov_file_product, ext, multilayer,
-                frame_start, frame_end, review)
+                frame_start, frame_end, review,
+                colorspace_data)
 
-    def create_renderlayer_instance(self, instance, render_product,
-                                    aov_file_product, ext, multilayer,
-                                    frame_start, frame_end, review):
+    def create_renderlayer_instance(
+        self,
+        instance,
+        render_product,
+        aov_file_product,
+        ext,
+        multilayer,
+        frame_start,
+        frame_end,
+        review,
+        colorspace_data,
+    ):
         context = instance.context
         prod_type = "render"
         project_name = instance.context.data["projectName"]
@@ -160,16 +180,11 @@ class CollectBlenderRender(plugin.BlenderInstancePlugin):
                 "frameStartHandle": frame_start,
                 "frameEndHandle": frame_end,
                 "task": instance.data["task"],
-                # OCIO not currently implemented in Blender, but the following
-                # settings are required by the schema, so it is hardcoded.
-                # TODO: Implement OCIO in Blender
-                "colorspaceConfig": "",
-                "colorspaceDisplay": "sRGB",
-                "colorspaceView": "ACES 1.0 SDR-video",
                 "renderProducts": colorspace.ARenderProduct(
                     frame_start=frame_start,
                     frame_end=frame_end
                 ),
                 "publish_attributes": instance.data["publish_attributes"]
             })
+            instance.data.update(colorspace_data)
             instance.append(rn_layer_instance)

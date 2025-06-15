@@ -10,25 +10,10 @@ from ayon_core.pipeline.publish import (
     OptionalPyblishPluginMixin
 )
 from ayon_blender.api import plugin
-from ayon_blender.api.render_lib import update_render_product
-
-
-def get_composite_output_node():
-    """Get composite output node for validation
-
-    Returns:
-        node: composite output node
-    """
-    tree = bpy.context.scene.node_tree
-    output_type = "CompositorNodeOutputFile"
-    output_node = None
-    # Remove all output nodes that include "AYON" in the name.
-    # There should be only one.
-    for node in tree.nodes:
-        if node.bl_idname == output_type and "AYON" in node.name:
-            output_node = node
-            break
-    return output_node
+from ayon_blender.api.render_lib import (
+    update_render_product,
+    get_composite_output_node
+)
 
 
 class ValidateDeadlinePublish(
