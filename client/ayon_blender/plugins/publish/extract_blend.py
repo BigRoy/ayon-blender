@@ -39,7 +39,7 @@ class ExtractBlend(
 
     label = "Extract Blend"
     hosts = ["blender"]
-    families = ["model", "camera", "rig", "layout", "blendScene"]
+    families = ["model", "camera", "rig", "layout"]
     optional = True
 
     # From settings
@@ -118,6 +118,17 @@ class ExtractBlend(
             set: A set of data blocks added.
         """
         return set(instance)
+
+
+class ExtractBlendScene(ExtractBlend):
+    """Extract a blend file from the current scene.
+
+    Enforced to be non-optional for `blendScene`."""
+    families = ["blendScene"]
+    label = "Extract Blend Scene"
+    optional = False
+    enabled = True
+
 
 class ExtractBlendAction(ExtractBlend):
     """Extract a blend file from the current scene.

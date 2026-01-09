@@ -70,6 +70,10 @@ class ExtractBlendActionModel(BaseSettingsModel):
     compress: bool = SettingsField(True, title="Compress")
 
 
+class ExtractBlendSceneModel(BaseSettingsModel):
+    compress: bool = SettingsField(False, title="Compress")
+
+
 class ExtractBlendModel(BaseSettingsModel):
     enabled: bool = SettingsField(True)
     optional: bool = SettingsField(title="Optional")
@@ -173,6 +177,10 @@ class PublishPluginsModel(BaseSettingsModel):
         default_factory=ExtractBlendModel,
         title="Extract Blend",
         section="Extractors"
+    )
+    ExtractBlendScene: ExtractBlendSceneModel = SettingsField(
+        default_factory=ExtractBlendSceneModel,
+        title="Extract Blend Scene",
     )
     ExtractFBX: ValidatePluginModel = SettingsField(
         default_factory=ValidatePluginModel,
@@ -303,8 +311,10 @@ DEFAULT_BLENDER_PUBLISH_SETTINGS = {
             "camera",
             "rig",
             "layout",
-            "blendScene"
         ],
+        "compress": False
+    },
+    "ExtractBlendScene": {
         "compress": False
     },
     "ExtractFBX": {
